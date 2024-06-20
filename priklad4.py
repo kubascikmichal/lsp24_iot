@@ -10,15 +10,21 @@ photo.atten(ADC.ATTN_11DB)
 
 def getPercentage():
     global photo
-    minimum = 25000
+    minimum = 37000
     maximum = 65535
     interval = maximum - minimum
-    return 100*(photo.read_u16() - minimum) / interval
+    val = 100*(photo.read_u16() - minimum) / interval
+    if val < 0:
+        return 0
+    elif val > 100:
+        return 100
+    else:
+        return val
 
 counter = 0
 def timerCallback(a):
     global counter
-    counter = 1
+    counter = counter + 1
     
 clockCounter = 0
 def clockCallback(a):
@@ -28,6 +34,9 @@ def clockCallback(a):
     np.write()
     clockCounter = clockCounter + 1
     
+def photoCallback(a):
+    val = getPercentage()/100
+    setRGB(0, int(1023*val), 0)
 
 i2c = SoftI2C(scl=Pin(13), sda=Pin(14))
 oled_width = 128
@@ -42,16 +51,20 @@ timer.init(period=1000, mode=Timer.PERIODIC, callback=timerCallback)
 timer2 = Timer(1)
 timer2.init(period=1000, mode=Timer.PERIODIC, callback=clockCallback)
 
+timer3 = Timer(2)
+timer3.init(period=50, mode=Timer.PERIODIC, callback=photoCallback)
+
 oled.fill(0)
 oled.text("Svetlo {:.2f} %".format(getPercentage()), 0,0)
 oled.text(f"Teplota {my_dht.temperature()} C", 0,10)
 oled.text(f"Vlhkost {my_dht.humidity()} %", 0,20)
 oled.show()
-
+pom_counter = counter
 while True:
-    if counter == 1:
-        counter = 0
-        my_dht.measure()
+    if counter != pom_counter:
+        pom_counter = counter
+        if (counter % 30) == 0:
+            my_dht.measure()
         oled.fill(0)
         oled.text("Svetlo {:.2f} %".format(getPercentage()), 0,0)
         oled.text(f"Teplota {my_dht.temperature()} C", 0,10)
