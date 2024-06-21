@@ -39,6 +39,7 @@ s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 s.bind(('', 80))
 s.listen(5)
 
+while True:
     conn, addr = s.accept()
     request = conn.recv(1024)
     my_dht.measure()
